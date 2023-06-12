@@ -1,127 +1,157 @@
-import java.awt.*;
-import java.awt.event.*;
 import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
-public class TicTacToeGame extends JFrame {
-    private JButton[][] board;
-    private boolean player1Turn;
-    private boolean gameOver;
-    private boolean againstAI;
+public class TicTacToeGame extends JFrame implements ActionListener {
+    private JButton[][] buttons;
+    private boolean playerX;
 
-    public TicTacToeGame(boolean againstAI) {
-        this.againstAI = againstAI;
-        board = new JButton[3][3];
-        player1Turn = true;
-        gameOver = false;
+    public TicTacToeGame() {
+        setTitle("Tic Tac Toe");
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setSize(300, 300);
+        setLayout(new GridLayout(3, 3));
 
-        JPanel panel = new JPanel(new GridLayout(3, 3));
+        buttons = new JButton[3][3];
+        playerX = true;
 
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
-                JButton button = new JButton();
-                button.setPreferredSize(new Dimension(100, 100));
-                button.setFont(new Font("Arial", Font.PLAIN, 40));
-                button.addActionListener(new ButtonClickListener(row, col));
-                board[row][col] = button;
-                panel.add(button);
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                buttons[i][j] = new JButton();
+                buttons[i][j].setFont(new Font(Font.SANS_SERIF, Font.BOLD, 50));
+                buttons[i][j].addActionListener(this);
+                add(buttons[i][j]);
             }
         }
 
-        add(panel);
-        setTitle("Tic Tac Toe");
-        setSize(320, 320);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
         setVisible(true);
     }
 
-    private class ButtonClickListener implements ActionListener {
-        private int row;
-        private int col;
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(TicTacToeGame::new);
+    }
 
-        public ButtonClickListener(int row, int col) {
-            this.row = row;
-            this.col = col;
-        }
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        JButton button = (JButton) e.getSource();
 
-        public void actionPerformed(ActionEvent e) {
-            JButton button = (JButton) e.getSource();
-            if (!gameOver && button.getText().isEmpty()) {
-                if (player1Turn) {
-                    button.setText("X");
+        if (button.getText().isEmpty()) {
+            if (playerX) {
+                button.setText("X");
+            } else {
+                button.setText("O");
+            }
+
+            button.setEnabled(false);
+            playerX = !playerX;
+
+            if (checkForWin()) {
+                highlightWinningLine();
+                int option = JOptionPane.showOptionDialog(this, (playerX ? "O" : "X") + " wins!  What now?", "Game Over",
+                        JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, new String[]{"Restart", "Main Menu"}, "Restart");
+
+                if (option == JOptionPane.YES_OPTION) {
+                    resetGame();
                 } else {
-                    button.setText("O");
+                    returnToMainMenu();
                 }
-                button.setEnabled(false);
-                checkGameOver();
-                if (!gameOver && againstAI) {
-                    makeAIMove();
+            } else if (isBoardFull()) {
+                int option = JOptionPane.showOptionDialog(this, "It's a draw!  Now what?", "Game Over",
+                        JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, new String[]{"Restart", "Main Menu"}, "Restart");
+
+                if (option == JOptionPane.YES_OPTION) {
+                    resetGame();
+                } else {
+                    returnToMainMenu();
                 }
             }
         }
     }
 
-    private void checkGameOver() {
+    private boolean checkForWin() {
+        // Check rows
         for (int i = 0; i < 3; i++) {
-            if (!board[i][0].getText().isEmpty() &&
-                    board[i][0].getText().equals(board[i][1].getText()) &&
-                    board[i][0].getText().equals(board[i][2].getText())) {
-                gameOver = true;
-                highlightWinnerCells(i, 0, i, 1, i, 2);
-                break;
+            if (!buttons[i][0].getText().isEmpty() &&
+                    buttons[i][0].getText().equals(buttons[i][1].getText()) &&
+                    buttons[i][1].getText().equals(buttons[i][2].getText())) {
+                return true;
             }
         }
 
+        // Check columns
         for (int i = 0; i < 3; i++) {
-            if (!board[0][i].getText().isEmpty() &&
-                    board[0][i].getText().equals(board[1][i].getText()) &&
-                    board[0][i].getText().equals(board[2][i].getText())) {
-                gameOver = true;
-                highlightWinnerCells(0, i, 1, i, 2, i);
-                break;
+            if (!buttons[0][i].getText().isEmpty() &&
+                    buttons[0][i].getText().equals(buttons[1][i].getText()) &&
+                    buttons[1][i].getText().equals(buttons[2][i].getText())) {
+                return true;
             }
         }
 
-        if (!board[0][0].getText().isEmpty() &&
-                board[0][0].getText().equals(board[1][1].getText()) &&
-                board[0][0].getText().equals(board[2][2].getText())) {
-            gameOver = true;
-            highlightWinnerCells(0, 0, 1, 1, 2, 2);
+        // Check diagonals
+        if (!buttons[0][0].getText().isEmpty() &&
+                buttons[0][0].getText().equals(buttons[1][1].getText()) &&
+                buttons[1][1].getText().equals(buttons[2][2].getText())) {
+            return true;
         }
 
-        if (!board[0][2].getText().isEmpty() &&
-                board[0][2].getText().equals(board[1][1].getText()) &&
-                board[0][2].getText().equals(board[2][0].getText())) {
-            gameOver = true;
-            highlightWinnerCells(0, 2, 1, 1, 2, 0);
+        if (!buttons[0][2].getText().isEmpty() &&
+                buttons[0][2].getText().equals(buttons[1][1].getText()) &&
+                buttons[1][1].getText().equals(buttons[2][0].getText())) {
+            return true;
         }
 
-        if (gameOver) {
-            String winner = player1Turn ? "Player 1" : (againstAI ? "AI" : "Player 2");
-            JOptionPane.showMessageDialog(this, winner + " wins!");
-            int choice = JOptionPane.showConfirmDialog(this, "Do you want to play again?", "Tic Tac Toe", JOptionPane.YES_NO_OPTION);
-            if (choice == JOptionPane.YES_OPTION) {
-                resetGame();
-            } else {
-                System.exit(0);
+        return false;
+    }
+
+    private void highlightWinningLine() {
+        // Check rows
+        for (int i = 0; i < 3; i++) {
+            if (!buttons[i][0].getText().isEmpty() &&
+                    buttons[i][0].getText().equals(buttons[i][1].getText()) &&
+                    buttons[i][1].getText().equals(buttons[i][2].getText())) {
+                buttons[i][0].setBackground(Color.GREEN);
+                buttons[i][1].setBackground(Color.GREEN);
+                buttons[i][2].setBackground(Color.GREEN);
+                return;
             }
-        } else if (isBoardFull()) {
-            JOptionPane.showMessageDialog(this, "It's a tie!");
-            int choice = JOptionPane.showConfirmDialog(this, "Do you want to play again?", "Tic Tac Toe", JOptionPane.YES_NO_OPTION);
-            if (choice == JOptionPane.YES_OPTION) {
-                resetGame();
-            } else {
-                System.exit(0);
+        }
+
+        // Check columns
+        for (int i = 0; i < 3; i++) {
+            if (!buttons[0][i].getText().isEmpty() &&
+                    buttons[0][i].getText().equals(buttons[1][i].getText()) &&
+                    buttons[1][i].getText().equals(buttons[2][i].getText())) {
+                buttons[0][i].setBackground(Color.GREEN);
+                buttons[1][i].setBackground(Color.GREEN);
+                buttons[2][i].setBackground(Color.GREEN);
+                return;
             }
-        } else {
-            player1Turn = !player1Turn;
+        }
+
+        // Check diagonals
+        if (!buttons[0][0].getText().isEmpty() &&
+                buttons[0][0].getText().equals(buttons[1][1].getText()) &&
+                buttons[1][1].getText().equals(buttons[2][2].getText())) {
+            buttons[0][0].setBackground(Color.GREEN);
+            buttons[1][1].setBackground(Color.GREEN);
+            buttons[2][2].setBackground(Color.GREEN);
+            return;
+        }
+
+        if (!buttons[0][2].getText().isEmpty() &&
+                buttons[0][2].getText().equals(buttons[1][1].getText()) &&
+                buttons[1][1].getText().equals(buttons[2][0].getText())) {
+            buttons[0][2].setBackground(Color.GREEN);
+            buttons[1][1].setBackground(Color.GREEN);
+            buttons[2][0].setBackground(Color.GREEN);
         }
     }
 
     private boolean isBoardFull() {
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
-                if (board[row][col].getText().isEmpty()) {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (buttons[i][j].getText().isEmpty()) {
                     return false;
                 }
             }
@@ -129,32 +159,29 @@ public class TicTacToeGame extends JFrame {
         return true;
     }
 
-    private void highlightWinnerCells(int row1, int col1, int row2, int col2, int row3, int col3) {
-        board[row1][col1].setBackground(Color.GREEN);
-        board[row2][col2].setBackground(Color.GREEN);
-        board[row3][col3].setBackground(Color.GREEN);
-    }
-
     private void resetGame() {
-        gameOver = false;
-        player1Turn = true;
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
-                board[row][col].setText("");
-                board[row][col].setEnabled(true);
-                board[row][col].setBackground(null);
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                buttons[i][j].setText("");
+                buttons[i][j].setEnabled(true);
+                buttons[i][j].setBackground(null);
             }
         }
+        playerX = true;
     }
 
-    private void makeAIMove() {
-        int row, col;
-        do {
-            row = (int) (Math.random() * 3);
-            col = (int) (Math.random() * 3);
-        } while (!board[row][col].getText().isEmpty());
-        board[row][col].setText("O");
-        board[row][col].setEnabled(false);
-        checkGameOver();
+    private void returnToMainMenu() {
+        dispose();
+        JFrame frame = new JFrame("Main Menu");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(500, 500);
+
+        MainMenu mainMenu = new MainMenu();
+        frame.add(mainMenu);
+
+        // Center the frame on the screen
+        frame.setLocationRelativeTo(null);
+
+        frame.setVisible(true);
     }
 }
